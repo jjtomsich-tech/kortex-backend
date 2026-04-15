@@ -8,48 +8,47 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// memoria (no guarda archivos en disco)
 const upload = multer({ storage: multer.memoryStorage() });
 
-// health check
 app.get("/", (req, res) => {
   res.json({ ok: true });
 });
 
-// upload PDF + extract text
 app.post("/api/upload", upload.single("pdf"), async (req, res) => {
   try {
+    console.log("FILE:", req.file);
+
     if (!req.file) {
-      return res.status(400).json({
+      return res.json({
         success: false,
-        error: "No file uploaded"
+        error: "NO FILE"
       });
     }
 
-    const pdfBuffer = req.file.buffer;
+    const data = await pdfParse(req.file.buffer);
 
-    const data = await pdfParse(pdfBuffer);
-
-    const text = data.text || "";
-
-    return res.json({
+    res.json({
       success: true,
       data: {
-        text
+        text: data.text
       }
     });
 
-  } catch (err: any) {
-    console.error("PDF error:", err);
+  } catch (e) {
+    console.error(e);
 
-    return res.status(500).json({
+    res.json({
       success: false,
-      error: "Failed to process PDF"
+      error: "PDF ERROR"
     });
   }
 });
 
 const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("server running on", PORT);
+});
 
 app.listen(PORT, () => {
   console.log("server running on", PORT);
